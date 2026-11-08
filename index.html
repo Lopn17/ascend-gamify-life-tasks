@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a1d">
+  <meta name="description" content="Make every step visible. Turn meaningful daily effort into an expedition from basecamp to Mount Everest.">
+  <title>ASCEND — Your life. Your progress. Your altitude.</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Expedition navigation">
+      <button class="icon-button sidebar-close" data-action="close-menu" aria-label="Close navigation">×</button>
+      <a class="brand" href="#overview"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m3 26 12-21 5 9 4-5 8 17H3Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m10 14 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>ASCEND<small>MAKE EVERY STEP VISIBLE</small></span></a>
+      <p class="eyebrow sidebar-label">YOUR EXPEDITION</p>
+      <nav id="main-nav" aria-label="Primary navigation">
+        <a class="nav-item" href="#overview" data-icon="overview">Overview</a>
+        <a class="nav-item" href="#journey" data-icon="journey">Journey <span class="nav-dot"></span></a>
+        <a class="nav-item" href="#tasks" data-icon="tasks">Tasks <b id="pending-count">0</b></a>
+        <a class="nav-item" href="#achievements" data-icon="trophy">Achievements</a>
+        <a class="nav-item" href="#statistics" data-icon="chart">Statistics</a>
+      </nav>
+      <div class="sidebar-destination"><div class="mini-mountain"></div><p class="eyebrow">THE NORTH STAR</p><h3>Mount Everest</h3><p>8,849 meters of possibility.</p><div id="sidebar-progress"></div></div>
+      <div class="sidebar-bottom"><a class="nav-item" href="#profile" data-icon="settings">Basecamp & settings</a><button class="theme-toggle" id="theme-toggle" data-action="theme"></button><a class="sidebar-profile" href="#profile"><span class="avatar" id="sidebar-avatar">E</span><span><strong id="sidebar-name">The Explorer</strong><small id="sidebar-rank">Trail Starter</small></span><span aria-hidden="true">↗</span></a></div>
+    </aside>
+    <button class="menu-scrim" data-action="close-menu" aria-label="Close navigation" tabindex="-1"></button>
+    <div class="main-shell"><header class="topbar"><div><button class="icon-button mobile-menu" id="mobile-menu" data-action="menu" aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation"></button><span class="topbar-brand">YOUR EXPEDITION</span><span class="breadcrumb-separator">/</span><span id="breadcrumb">Overview</span></div><span class="local-label"><i></i> A little higher, every day</span></header><main id="main-content" tabindex="-1"><div id="storage-alert" role="alert" hidden></div><div id="page-root" class="page"></div></main></div>
+  </div>
+  <div id="modal-root"></div>
+  <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
+  <input type="file" id="file-input" accept="application/json,.json" hidden>
+  <script src="data.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/visuals.js"></script>
+  <script>document.querySelectorAll('[data-icon]').forEach(el=>el.insertAdjacentHTML('afterbegin',icon(el.dataset.icon)));document.getElementById('mobile-menu').innerHTML=icon('menu');</script>
+  <script src="app.js"></script>
+</body>
+</html>
