@@ -41,6 +41,24 @@
 .undo-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:7px 10px;background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;color:var(--accent);font-size:11px;font-weight:600;white-space:nowrap}
 .undo-button:hover{border-color:var(--accent);background:var(--surface-alt)}
 .undo-button .icon{width:14px;height:14px}
+.category-settings{margin-bottom:24px}
+.category-settings .panel-heading p{font-size:11px;line-height:1.7;margin-top:7px}
+.category-settings-list{display:grid;grid-template-columns:1fr 1fr;column-gap:24px;margin-top:18px}
+.category-setting{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding:13px 0;min-width:0}
+.category-setting-name{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}
+.category-setting-name small{display:block;font-size:10px;color:var(--muted);margin-top:5px}
+.category-setting .icon-button{flex-shrink:0}
+.category-settings-note{font-size:10px;line-height:1.7;color:var(--muted);margin-top:12px}
+.category-icon-picker{border:0;padding:0;margin:22px 0}
+.category-icon-picker legend{font-size:11px;margin-bottom:12px}
+.category-icon-picker>div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.modal .category-icon-option{position:relative;margin:0;cursor:pointer;min-width:0}
+.category-icon-option input[type=radio]{position:absolute;opacity:0;width:1px;height:1px;margin:0;padding:0}
+.category-icon-option>span{display:flex;align-items:center;flex-direction:column;gap:8px;padding:12px 3px;background:var(--field);border:1px solid var(--line);border-radius:7px;color:var(--muted)}
+.category-icon-option small{font-size:9px}
+.category-icon-option input:checked+span{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
+.category-icon-option input:focus-visible+span{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:650px){.category-settings-list{grid-template-columns:1fr}.category-settings .panel-heading{flex-wrap:wrap}.category-icon-picker>div{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.undo-button{min-height:40px;padding:9px 12px}}
 @media(max-height:700px){
   .sidebar{padding-top:16px}

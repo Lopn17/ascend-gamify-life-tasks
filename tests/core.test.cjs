@@ -5,8 +5,8 @@ const vm=require('node:vm');
 const C=require('../js/core.js');
 const data=vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../data.js'),'utf8')+'; ({CHECKPOINTS,CATEGORIES,DIFFICULTIES,ACHIEVEMENTS})');
 const {CHECKPOINTS,CATEGORIES,DIFFICULTIES,ACHIEVEMENTS}=data;
-function task(id='task-1',reward=5){return {id,title:'Practice calculus',description:'',category:'Mathematics',difficulty:'Normal',reward,status:'pending',createdAt:'2026-11-01T12:00:00.000Z'};}
-const activity=(date,reward=5,id=date)=>({id:`activity-${id}`,taskId:`task-${id}`,title:'Practice calculus',category:'Mathematics',reward,date});
+function task(id='task-1',reward=5){return {id,title:'Practice calculus',description:'',category:'Study',difficulty:'Normal',reward,status:'pending',createdAt:'2026-11-01T12:00:00.000Z'};}
+const activity=(date,reward=5,id=date)=>({id:`activity-${id}`,taskId:`task-${id}`,title:'Practice calculus',category:'Study',reward,date});
 test('50 strictly ordered checkpoints reach exactly Everest',()=>{assert.equal(CHECKPOINTS.length,50);assert.equal(CHECKPOINTS[0].altitude,0);assert.equal(CHECKPOINTS.at(-1).altitude,8849);assert(CHECKPOINTS.every((c,i)=>!i||c.altitude>CHECKPOINTS[i-1].altitude));});
 test('planned tasks earn nothing and completion earns exactly once',()=>{const s=C.fresh();s.tasks.push(task());assert.equal(C.derive(s).distance,0);assert(C.complete(s,'task-1','2026-11-01'));assert.equal(C.complete(s,'task-1','2026-11-01'),false);assert.equal(C.derive(s).distance,5);assert.equal(s.history.length,1);});
 test('transaction deduplication also guards a stale pending task',()=>{const s=C.fresh();s.tasks.push(task());C.complete(s,'task-1');s.tasks[0].status='pending';assert.equal(C.complete(s,'task-1'),false);assert.equal(s.history.length,1);});
@@ -24,6 +24,26 @@ test('reject malformed data, duplicate transactions, invalid dates and broken ta
 test('daily, weekly and monthly bins cross month/year boundaries correctly',()=>{const h=[activity('2025-12-31',5),activity('2026-01-01',3),activity('2026-01-05',8)];assert.equal(C.buckets(h,'daily','2026-01-05').at(-1).value,8);assert.equal(C.buckets(h,'weekly','2026-01-05').at(-1).value,8);assert.equal(C.buckets(h,'weekly','2026-01-05').at(-2).value,8);assert.equal(C.buckets(h,'monthly','2026-01-05').at(-1).value,11);});
 test('unknown achievement IDs cannot enter a validated backup',()=>{const s=C.fresh();s.achievements=['__proto__'];assert.throws(()=>C.validate(s,CATEGORIES,ACHIEVEMENTS));});
 test('unknown difficulty cannot bypass ranges through inherited object keys',()=>{assert.throws(()=>C.taskFields({...task(),difficulty:'toString'},CATEGORIES,DIFFICULTIES));});
+test('custom category rename updates completed tasks and history while retaining rewards and icons in backups',()=>{
+  const s=C.fresh();C.saveCategory(s,'','Music','heart',CATEGORIES);s.tasks=[{...task(),category:'Music'}];C.complete(s,'task-1');
+  C.saveCategory(s,'Music','Piano practice','spark',CATEGORIES);
+  const restored=C.validate(JSON.parse(JSON.stringify(s)),CATEGORIES,ACHIEVEMENTS);
+  assert.equal(restored.tasks[0].category,'Piano practice');assert.equal(restored.history[0].category,'Piano practice');assert.equal(C.derive(restored).distance,5);
+  assert.equal(restored.categories.find(c=>c.name==='Piano practice').icon,'spark');
+  assert.throws(()=>C.deleteCategory(restored,'Piano practice',CATEGORIES));
+});
+test('category editor rejects duplicate/invalid names and icons, and removes only unused categories',()=>{
+  const s=C.fresh();C.saveCategory(s,'','Music','heart',CATEGORIES);
+  assert.throws(()=>C.saveCategory(s,'','music','heart',CATEGORIES));assert.throws(()=>C.saveCategory(s,'','  ','heart',CATEGORIES));assert.throws(()=>C.saveCategory(s,'','All','heart',CATEGORIES));assert.throws(()=>C.saveCategory(s,'','Test','invalid',CATEGORIES));
+  C.deleteCategory(s,'Music',CATEGORIES);assert(!s.categories.some(c=>c.name==='Music'));
+});
+test('legacy records using removed default categories still load after editing data.js defaults',()=>{
+  const s=C.fresh();s.tasks=[{...task(),category:'Mathematics'}];C.complete(s,'task-1');
+  const restored=C.validate(s,CATEGORIES,ACHIEVEMENTS,{Mathematics:'target',Study:'book'});
+  assert(restored.categories.some(c=>c.name==='Study'&&c.icon==='book'));
+  assert(restored.categories.some(c=>c.name==='Mathematics'&&c.icon==='target'));
+  assert.equal(C.derive(restored).distance,5);
+});
 test('undo removes only the selected reward and restores the intact task to pending',()=>{
   const s=C.fresh(),original={...task(),description:'Keep my notes'};s.tasks=[structuredClone(original),task('other')];
   C.complete(s,'task-1','2026-11-01');C.complete(s,'other','2026-11-02');

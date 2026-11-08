@@ -1,4 +1,6 @@
 const ICON_PATHS = {
+ graduation:'m2 9 10-5 10 5-10 5L2 9Zm4 2v6q6 5 12 0v-6M22 9v8',
+ language:'M3 5h12M9 3v2M5 5c0 5 4 9 9 11M13 5c0 5-4 9-10 11M14 21l4-10 4 10M16 17h4',
  undo:'M9 4 4 9l5 5M4 9h9a7 7 0 0 1 0 14',
  mountain:'M3 20 10 6l4 7 3-5 5 12H3ZM8 10l2 3 2-3',
  overview:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',

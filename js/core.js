@@ -7,6 +7,35 @@
   const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   const fresh = () => ({version:2,profile:{name:'The Explorer'},tasks:[],history:[],unlocked:[1],achievements:[],achievementDates:{},settings:{theme:'dark'}});
   const ranks = [[8849,'Summit Seeker'],[6000,'High Altitude'],[3000,'Alpine Explorer'],[1000,'Mountain Walker'],[500,'Skyline Climber'],[100,'City Hiker'],[0,'Trail Starter']];
+  const categoryIconChoices=['code','book','calendar','graduation','language','heart','spark','tasks','target','mountain','flame','trophy','flag','sun','chart'];
+  function categoryList(s, defaults, icons={}) {
+    if(s.categories) return s.categories.map(c=>({...c}));
+    const names=[...defaults];
+    // Preserve categories on older records when the default list is edited in data.js.
+    for(const record of [...s.tasks,...s.history]) if(['Mathematics','University','Reading'].includes(record.category)&&!names.includes(record.category)) names.push(record.category);
+    return names.map(name=>({name,icon:Object.hasOwn(icons,name)?icons[name]:'tasks'}));
+  }
+  function saveCategory(s, original, name, icon, defaults, icons={}) {
+    name=name.trim();
+    if(!name || name.length>40 || name.toLowerCase()==='all') throw Error('Use a category name of 1–40 characters, other than “All”.');
+    if(!categoryIconChoices.includes(icon)) throw Error('Choose an icon from the list.');
+    const list=categoryList(s,defaults,icons),index=list.findIndex(c=>c.name===original);
+    if(original && index<0) throw Error('This category has changed. Reopen the category editor.');
+    if(list.some((c,i)=>i!==index&&c.name.toLowerCase()===name.toLowerCase())) throw Error('A category with that name already exists.');
+    if(index<0){if(list.length>=100)throw Error('You can create up to 100 categories.');list.push({name,icon});}
+    else{
+      list[index]={name,icon};
+      for(const record of [...s.tasks,...s.history]) if(record.category===original)record.category=name;
+    }
+    s.categories=list;
+  }
+  function deleteCategory(s,name,defaults,icons={}) {
+    const list=categoryList(s,defaults,icons);
+    if(!list.some(c=>c.name===name))return false;
+    if(list.length<=1)throw Error('Keep at least one category.');
+    if([...s.tasks,...s.history].some(r=>r.category===name))throw Error('This category is used in tasks or activity history. You can rename it instead.');
+    s.categories=list.filter(c=>c.name!==name);
+  }
   // Thresholds: 0, 50, 120, 220, 350, 510…; every level has a larger interval.
   function level(x) {
     let level = 1, previous = 0, next = 50;
@@ -32,13 +61,21 @@
     }
     return result;
   }
-  function validate(raw, categories, badges) {
+  function validate(raw, categories, badges, defaultIcons={}) {
     const fail = () => { throw new Error('This backup contains invalid or inconsistent expedition data.'); };
     const object = value => value && typeof value === 'object' && !Array.isArray(value);
     const string = (value,limit) => typeof value === 'string' && value.trim().length > 0 && value.length <= limit;
     const reward = value => Number.isInteger(value) && value>=1 && value<=15;
     if (!object(raw) || (raw.version !== undefined && raw.version !== 2) || !object(raw.profile) || !string(raw.profile.name,60) || !Array.isArray(raw.tasks) || !Array.isArray(raw.history) || raw.tasks.length>100000 || raw.history.length>100000) fail();
     const s = fresh(); s.profile.name = raw.profile.name.trim();
+    if(raw.categories!==undefined && (!Array.isArray(raw.categories)||!raw.categories.length||raw.categories.length>100))fail();
+    s.categories=raw.categories!==undefined?raw.categories:categoryList(raw,categories,defaultIcons);
+    const categoryNames=new Set();
+    s.categories=s.categories.map(c=>{
+      if(!object(c)||!string(c.name,40)||c.name!==c.name.trim()||c.name.toLowerCase()==='all'||categoryNames.has(c.name.toLowerCase())||!categoryIconChoices.includes(c.icon))fail();
+      categoryNames.add(c.name.toLowerCase());return {name:c.name,icon:c.icon};
+    });
+    categories=s.categories.map(c=>c.name);
     const ids = new Set(), transactions = new Set(), completed = new Map();
     for (const h of raw.history) {
       if (!object(h) || !string(h.id,100) || !string(h.taskId,100) || !string(h.title,160) || !categories.includes(h.category) || !reward(h.reward) || !validDate(h.date) || ids.has(h.id) || transactions.has(h.taskId)) fail();
@@ -107,6 +144,6 @@
       return {start,end:finish,label:d.toLocaleDateString('en',{month:'short',...(mode!=='monthly'?{day:'numeric'}:{})}),value:history.filter(h=>h.date>=start && h.date<finish).reduce((sum,h)=>sum+h.reward,0)};
     });
   }
-  root.AscendCore = {localDate,shiftDate,validDate,uid,fresh,level,streak,derive,reconcile,validate,taskFields,complete,undoCompletion,buckets};
+  root.AscendCore = {localDate,shiftDate,validDate,uid,fresh,level,streak,derive,reconcile,validate,taskFields,complete,undoCompletion,buckets,categoryList,categoryIconChoices,saveCategory,deleteCategory};
   if (typeof module!=='undefined') module.exports = root.AscendCore;
 })(globalThis);

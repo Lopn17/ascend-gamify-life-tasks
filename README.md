@@ -17,6 +17,7 @@ Progress belongs to the browser and origin that saved it. A file URL and a local
 - Distance, task, checkpoint, and 3/7/14/30/60/100-day consistency achievements, with recorded unlock dates for new awards.
 - Daily, weekly, and monthly distance charts; category distribution; and a 12-week activity calendar.
 - Light/dark appearance, editable profile, JSON backup preview and confirmation, reset confirmation, and corrupt-storage recovery export.
+- Category management in Basecamp & settings: add, rename, choose an icon, or delete an unused category. Initial names and icons come from `data.js`; your customization is saved locally and included in backups. Renames update existing tasks and activity labels without changing rewards.
 - Keyboard-accessible native dialogs, focus restoration, mobile navigation, reduced-motion support, and escaped user-provided text.
 
 ## Data rules

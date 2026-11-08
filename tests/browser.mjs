@@ -115,6 +115,20 @@ try{
   await evaluate(`(()=>{const s=C.fresh();s.profile.name='Summit Explorer';s.history=Array.from({length:590},(_,i)=>({id:'summit-'+i,taskId:'summit-task-'+i,title:'Expedition effort',category:'Exercise',reward:15,date:C.localDate()}));AscendStorage.write(s)})()`);
   await cdp('Page.reload');await until('typeof state!=="undefined"&&state.distance===8850');await route('overview');assert.equal(await evaluate('state.unlocked.length'),50);assert.equal(await evaluate('percent()'),100);assert(await evaluate('document.querySelector(".hero-scale").textContent.includes("0 m to the summit")'));
   await route('journey');await click('#stop-50');assert(await evaluate('document.querySelector(".checkpoint-detail-altitude").textContent.includes("Reached")'));await click('[data-action="close"]');
+  // Category settings are used by the real task form and persist across reloads.
+  await route('profile');await click('[data-action="add-category"]');
+  await evaluate(`document.querySelector('#category-form [name=name]').value='Music';document.querySelector('#category-form [value=heart]').checked=true;document.querySelector('#category-form').requestSubmit()`);
+  await until('!document.querySelector("dialog")&&state.categories.some(c=>c.name==="Music")');
+  await click('[data-category-edit="Music"]');await evaluate(`document.querySelector('#category-form [name=name]').value='Piano practice';document.querySelector('#category-form [value=spark]').checked=true;document.querySelector('#category-form').requestSubmit()`);
+  await until('!document.querySelector("dialog")&&state.categories.some(c=>c.name==="Piano practice")');
+  await route('tasks');await click('[data-action="quick"]');
+  await evaluate(`document.querySelector('#task-form [name=title]').value='Practice scales';document.querySelector('#task-form [name=category]').value='Piano practice';document.querySelector('#task-form').requestSubmit()`);await until('state.distance===8855');
+  await cdp('Page.reload');await until('typeof state!=="undefined"&&state.distance===8855');assert.equal(await evaluate(`categoryIcon('Piano practice')`),'spark');
+  await route('profile');assert.equal(await evaluate(`document.querySelector('[data-category-delete="Piano practice"]').disabled`),true);
+  await click('[data-category-edit="Piano practice"]');await evaluate(`document.querySelector('#category-form [name=name]').value='Music lessons';document.querySelector('#category-form').requestSubmit()`);
+  await until('!document.querySelector("dialog")&&state.tasks[0].category==="Music lessons"');assert.equal(await evaluate('state.history.at(-1).category'),'Music lessons');assert.equal(await evaluate('state.distance'),8855);
+  await click('[data-action="add-category"]');await evaluate(`document.querySelector('#category-form [name=name]').value='Temporary';document.querySelector('#category-form').requestSubmit()`);await until('!document.querySelector("dialog")');
+  await click('[data-category-delete="Temporary"]');await click('[data-action="delete-category:Temporary"]');await until('!document.querySelector("dialog")');assert.equal(await evaluate('state.categories.some(c=>c.name==="Temporary")'),false);
   // Corrupt data is preserved, surfaced, and never silently replaced.
   await evaluate(`localStorage.setItem('ascend-v1','{broken')`);await cdp('Page.reload');await until('document.querySelector("#storage-alert")&&!document.querySelector("#storage-alert").hidden');assert.equal(await evaluate('localStorage.getItem("ascend-v1")'),'{broken');
   assert.deepEqual(errors,[],'No uncaught browser exceptions');
