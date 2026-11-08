@@ -24,6 +24,19 @@ test('reject malformed data, duplicate transactions, invalid dates and broken ta
 test('daily, weekly and monthly bins cross month/year boundaries correctly',()=>{const h=[activity('2025-12-31',5),activity('2026-01-01',3),activity('2026-01-05',8)];assert.equal(C.buckets(h,'daily','2026-01-05').at(-1).value,8);assert.equal(C.buckets(h,'weekly','2026-01-05').at(-1).value,8);assert.equal(C.buckets(h,'weekly','2026-01-05').at(-2).value,8);assert.equal(C.buckets(h,'monthly','2026-01-05').at(-1).value,11);});
 test('unknown achievement IDs cannot enter a validated backup',()=>{const s=C.fresh();s.achievements=['__proto__'];assert.throws(()=>C.validate(s,CATEGORIES,ACHIEVEMENTS));});
 test('unknown difficulty cannot bypass ranges through inherited object keys',()=>{assert.throws(()=>C.taskFields({...task(),difficulty:'toString'},CATEGORIES,DIFFICULTIES));});
+test('monthly averages isolate each month and count distinct active dates, not tasks',()=>{
+  const history=[activity('2025-12-31',15),activity('2026-01-01',5),activity('2026-01-01',3,'second-task'),activity('2026-01-03',10),activity('2026-02-01',15)];
+  const months=C.monthlySummaries(history,'2026-01-15');
+  assert.deepEqual(months[0],{month:'2026-01',distance:18,activeDays:2,average:9});
+  assert.deepEqual(months[1],{month:'2025-12',distance:15,activeDays:1,average:15});
+  assert.equal(months.some(m=>m.month==='2026-02'),false);
+});
+test('monthly summary handles empty months and retains activity older than six months',()=>{
+  const months=C.monthlySummaries([activity('2024-02-29',7)],'2026-01-15');
+  assert.deepEqual(months[0],{month:'2026-01',distance:0,activeDays:0,average:0});
+  assert.deepEqual(months.at(-1),{month:'2024-02',distance:7,activeDays:1,average:7});
+  assert.equal(C.monthlySummaries([],'2026-01-15').length,6);
+});
 test('custom category rename updates completed tasks and history while retaining rewards and icons in backups',()=>{
   const s=C.fresh();C.saveCategory(s,'','Music','heart',CATEGORIES);s.tasks=[{...task(),category:'Music'}];C.complete(s,'task-1');
   C.saveCategory(s,'Music','Piano practice','spark',CATEGORIES);

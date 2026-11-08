@@ -28,6 +28,31 @@ try{
   await cdp('Page.navigate',{url:pathToFileURL(join(root,'index.html')).href});await until(`document.querySelector('h1')!==null`);
   await mkdir(join(root,'test-results'),{recursive:true});
   assert.equal(await evaluate('state.distance'),0);
+  // Pagination is applied after filtering and clamps when the last page disappears.
+  await route('tasks');
+  await evaluate(`window.paginationOriginal=structuredClone(state);state.tasks=Array.from({length:41},(_,i)=>({id:'pagination-'+i,title:'Pagination task '+i,description:'',category:CATEGORIES[i%2],difficulty:'Normal',reward:5,status:'pending',createdAt:C.localDate()}));render()`);
+  assert.equal(await evaluate('document.querySelectorAll(".task-row").length'),20);
+  assert.equal(await evaluate(`document.querySelector('[data-task-page="0"]').disabled`),true);
+  await click('[data-task-page="2"]');
+  assert.equal(await evaluate('document.querySelector(".task-copy strong").textContent'),'Pagination task 20');
+  await click('[data-task-page="3"]');
+  assert.equal(await evaluate('document.querySelectorAll(".task-row").length'),1);
+  assert.equal(await evaluate(`document.querySelector('[data-task-page="4"]').disabled`),true);
+  await evaluate(`state.tasks.pop();render()`);
+  assert.equal(await evaluate('taskPage'),2);
+  await evaluate(`document.querySelector('#task-search').value='Pagination task 1';document.querySelector('#task-search').dispatchEvent(new Event('input',{bubbles:true}))`);
+  assert.equal(await evaluate('taskPage'),1);
+  assert.equal(await evaluate('document.querySelectorAll(".task-row").length'),11);
+  await evaluate(`document.querySelector('#task-search').value='';document.querySelector('#task-search').dispatchEvent(new Event('input',{bubbles:true}))`);
+  await click('[data-task-page="2"]');
+  await evaluate(`document.querySelector('#category-filter').value=CATEGORIES[0];document.querySelector('#category-filter').dispatchEvent(new Event('change',{bubbles:true}))`);
+  assert.equal(await evaluate('taskPage'),1);
+  assert.equal(await evaluate('document.querySelectorAll(".task-row").length'),20);
+  assert.equal(await evaluate('document.querySelector(".task-pagination")'),null);
+  await click('[data-filter="completed"]');
+  assert.equal(await evaluate('document.querySelectorAll(".task-row").length'),0);
+  await evaluate(`state=window.paginationOriginal;delete window.paginationOriginal;taskPage=1;taskFilter='pending';categoryFilter='all';taskSearch='';render()`);
+  await route('overview');
   await screenshot('overview-desktop.png');
   // Match a zoomed desktop: compact whitespace, keep the profile visible, and retain card padding.
   await cdp('Emulation.setDeviceMetricsOverride',{width:1536,height:728,deviceScaleFactor:1,mobile:false});
@@ -69,7 +94,12 @@ try{
   await click('[data-action="locate"]');await screenshot('journey-desktop.png');
   await click('#stop-50');assert.equal(await evaluate('document.querySelector("#modal-title").textContent'),'Mount Everest Summit');
   await cdp('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await cdp('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await until('!document.querySelector("dialog")');
-  await route('statistics');for(const mode of ['daily','weekly','monthly']){await click(`[data-chart="${mode}"]`);assert.equal(await evaluate('document.querySelectorAll(".bar-column").length'),({daily:14,weekly:8,monthly:6})[mode]);}
+  await route('statistics');
+  assert.equal(await evaluate('document.querySelectorAll(".statistics-metrics .metric").length'),5);
+  assert.equal(await evaluate('document.querySelector(".statistics-metrics .metric:first-child strong").textContent'),'13m');
+  assert.equal(await evaluate('document.querySelector(".statistics-metrics .metric:last-child strong").textContent'),'13.0m');
+  assert.equal(await evaluate('document.querySelector(".monthly-table .current-month td:last-child").textContent'),'13.0 m');
+  for(const mode of ['daily','weekly','monthly']){await click(`[data-chart="${mode}"]`);assert.equal(await evaluate('document.querySelectorAll(".bar-column").length'),({daily:14,weekly:8,monthly:6})[mode]);}
   await screenshot('statistics-desktop.png');
   await route('profile');await click('[data-action="theme"]');await until('document.documentElement.dataset.theme==="light"');await route('overview');await screenshot('overview-light.png');
   await click('[data-action="theme"]');await until('document.documentElement.dataset.theme==="dark"');

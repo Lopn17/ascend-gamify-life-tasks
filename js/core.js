@@ -130,6 +130,18 @@
     delete task.completedAt;
     return true;
   }
+  function monthlySummaries(history, today = localDate()) {
+    const months=new Map();
+    const ensure=key=>{if(!months.has(key))months.set(key,{month:key,distance:0,days:new Set()});return months.get(key);};
+    // Include recent empty months, plus every older month containing activity.
+    const current=new Date(`${today.slice(0,7)}-01T12:00:00`);
+    for(let i=0;i<6;i++){const date=new Date(current);date.setMonth(date.getMonth()-i);ensure(localDate(date).slice(0,7));}
+    for(const entry of history){
+      if(entry.date>today)continue;
+      const month=ensure(entry.date.slice(0,7));month.distance+=entry.reward;month.days.add(entry.date);
+    }
+    return [...months.values()].sort((a,b)=>b.month.localeCompare(a.month)).map(({month,distance,days})=>({month,distance,activeDays:days.size,average:days.size?distance/days.size:0}));
+  }
   function buckets(history, mode, today = localDate()) {
     const count = mode==='daily'?14:mode==='weekly'?8:6;
     const end = new Date(`${today}T12:00:00`);
@@ -144,6 +156,6 @@
       return {start,end:finish,label:d.toLocaleDateString('en',{month:'short',...(mode!=='monthly'?{day:'numeric'}:{})}),value:history.filter(h=>h.date>=start && h.date<finish).reduce((sum,h)=>sum+h.reward,0)};
     });
   }
-  root.AscendCore = {localDate,shiftDate,validDate,uid,fresh,level,streak,derive,reconcile,validate,taskFields,complete,undoCompletion,buckets,categoryList,categoryIconChoices,saveCategory,deleteCategory};
+  root.AscendCore = {localDate,shiftDate,validDate,uid,fresh,level,streak,derive,reconcile,validate,taskFields,complete,undoCompletion,buckets,monthlySummaries,categoryList,categoryIconChoices,saveCategory,deleteCategory};
   if (typeof module!=='undefined') module.exports = root.AscendCore;
 })(globalThis);
