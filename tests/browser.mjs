@@ -28,6 +28,30 @@ try{
   await cdp('Page.navigate',{url:pathToFileURL(join(root,'index.html')).href});await until(`document.querySelector('h1')!==null`);
   await mkdir(join(root,'test-results'),{recursive:true});
   assert.equal(await evaluate('state.distance'),0);
+  // Deadline UI, persistence, completion, reminder delivery, and per-day deduplication.
+  await until('typeof AscendReminders!=="undefined"&&!busy');await route('tasks');
+  await click('[data-action="plan"]');
+  await evaluate(`document.querySelector('[name=title]').value='Deadline test';document.querySelector('[name=deadline]').value=C.shiftDate(C.localDate(),-1);document.querySelector('[name=reminderTime]').value='00:00';document.querySelector('#task-form').requestSubmit()`);
+  await until('state.tasks.length===1&&!document.querySelector("dialog")&&!busy');
+  assert(await evaluate('!!document.querySelector(".task-deadline.overdue")'));
+  await evaluate(`window.originalNotification=window.Notification;window.notificationCalls=[];window.permissionCalls=0;window.Notification=class {static permission='default';static async requestPermission(){window.permissionCalls++;this.permission='granted';return 'granted';}constructor(title,options){window.notificationCalls.push({title,options});}}`);
+  await click('[data-action="reminders"]');
+  assert.equal(await evaluate('window.permissionCalls'),0);
+  assert.equal(await evaluate('document.querySelectorAll(".reminder-item").length'),1);
+  await click('[data-action="notification-toggle"]');
+  await until('window.permissionCalls===1&&localStorage.getItem("ascend-notifications-enabled")==="true"');
+  await evaluate(`(async()=>{localStorage.removeItem('ascend-reminder-receipts');await AscendReminders.check();await AscendReminders.check()})()`);
+  assert.equal(await evaluate('window.notificationCalls.length'),1);
+  await screenshot('reminders-desktop.png');
+  await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await screenshot('reminders-mobile.png');assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'));
+  await cdp('Emulation.setDeviceMetricsOverride',{width:1440,height:1050,deviceScaleFactor:1,mobile:false});
+  await click('[data-action="close"]');await cdp('Page.reload');
+  await until('typeof AscendReminders!=="undefined"&&state.tasks.length===1&&!busy');
+  assert.equal(await evaluate('state.tasks[0].reminderTime'),'00:00');
+  await click('[data-complete]');await until('state.distance===5&&!busy');
+  assert.equal(await evaluate('C.dueReminders(state).length'),0);
+  await evaluate(`localStorage.removeItem('ascend-v1');localStorage.removeItem('ascend-notifications-enabled');localStorage.removeItem('ascend-reminder-receipts');state=C.reconcile(C.fresh(),CHECKPOINTS,ACHIEVEMENTS);render()`);
   // Pagination is applied after filtering and clamps when the last page disappears.
   await route('tasks');
   await evaluate(`window.paginationOriginal=structuredClone(state);state.tasks=Array.from({length:41},(_,i)=>({id:'pagination-'+i,title:'Pagination task '+i,description:'',category:CATEGORIES[i%2],difficulty:'Normal',reward:5,status:'pending',createdAt:C.localDate()}));render()`);
@@ -52,6 +76,29 @@ try{
   await click('[data-filter="completed"]');
   assert.equal(await evaluate('document.querySelectorAll(".task-row").length'),0);
   await evaluate(`state=window.paginationOriginal;delete window.paginationOriginal;taskPage=1;taskFilter='pending';categoryFilter='all';taskSearch='';render()`);
+  // Good habits reward every check-in; bad habits settle clean days and allow historical corrections.
+  await click('[data-work-mode="habits"]');await click('[data-action="add-good-habit"]');
+  await evaluate(`document.querySelector('[name=name]').value='Daily study';const mode=document.querySelector('[name=scheduleMode][value=days]');mode.checked=true;mode.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[name=days][value="'+new Date(C.localDate()+'T12:00:00').getDay()+'"]').checked=true;document.querySelector('#habit-form').requestSubmit()`);
+  await until('state.habits.length===1&&!document.querySelector("dialog")');
+  assert.equal(await evaluate('state.habits[0].schedule.mode'),'days');
+  await click('[data-habit-checkin]');await until('state.habitEvents.length===1&&state.distance===5');
+  await click('[data-habit-checkin]');await until('state.habitEvents.length===2&&state.distance===10');
+  assert.equal(await evaluate('document.querySelector(".habit-count strong").textContent'),'2');
+  await click('[data-habit-remove-event]');await until('state.habitEvents.length===1&&state.distance===5');
+  await click('[data-action="add-bad-habit"]');
+  await evaluate(`document.querySelector('[name=name]').value='Late-night scrolling';document.querySelector('[name=startDate]').value=C.shiftDate(C.localDate(),-2);document.querySelector('#habit-form').requestSubmit()`);
+  await until('state.habits.length===2&&!document.querySelector("dialog")&&state.distance===15');
+  assert.equal(await evaluate(`state.habitEvents.filter(e=>e.type==='clean').length`),2);
+  await evaluate(`const input=document.querySelector('#habit-date');input.value=C.shiftDate(C.localDate(),-1);input.dispatchEvent(new Event('change',{bubbles:true}))`);
+  await click('[data-habit-fail]');await until(`state.habitEvents.some(e=>e.type==='failure')&&state.distance===10`);
+  await click('[data-habit-remove-event]');await until(`!state.habitEvents.some(e=>e.type==='failure')&&state.distance===15`);
+  await screenshot('habits-desktop.png');
+  await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await screenshot('habits-mobile.png');
+  assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth'));
+  await cdp('Emulation.setDeviceMetricsOverride',{width:1440,height:1050,deviceScaleFactor:1,mobile:false});
+  await cdp('Page.reload');await until('typeof state!=="undefined"&&state.habits.length===2&&state.distance===15');
+  assert.equal(await evaluate('AscendCore.validate(JSON.parse(localStorage.getItem("ascend-v1")),CATEGORIES,ACHIEVEMENTS,CATEGORY_ICONS).habitEvents.length'),3);
+  await evaluate(`localStorage.removeItem('ascend-v1');state=C.reconcile(C.fresh(),CHECKPOINTS,ACHIEVEMENTS);workMode='tasks';habitFilter='today';habitDate=C.localDate();taskPage=1;taskFilter='pending';categoryFilter='all';taskSearch='';render()`);
   await route('overview');
   await screenshot('overview-desktop.png');
   // Match a zoomed desktop: compact whitespace, keep the profile visible, and retain card padding.
@@ -162,7 +209,7 @@ try{
   // Corrupt data is preserved, surfaced, and never silently replaced.
   await evaluate(`localStorage.setItem('ascend-v1','{broken')`);await cdp('Page.reload');await until('document.querySelector("#storage-alert")&&!document.querySelector("#storage-alert").hidden');assert.equal(await evaluate('localStorage.getItem("ascend-v1")'),'{broken');
   assert.deepEqual(errors,[],'No uncaught browser exceptions');
-  console.log('PASS: real-browser task flows, quick/planned completion undo, re-completion, undo refresh persistence, duplicate/stale/cross-tab undo, failed writes, North Star padding in short windows, actual JSON download/import, XSS escaping, 50 checkpoints, charts, themes, keyboard dialog, responsive pages, and summit completion.');
+  console.log('PASS: real-browser tasks, pagination, good/bad habits, schedules, repeated check-ins, clean-day settlement, historical corrections, persistence, undo, imports, responsive pages, and summit completion.');
   console.log(`Screenshots: ${join(root,'test-results')}`);
   await send('Browser.close');
 }finally{ws?.close();child.kill();}

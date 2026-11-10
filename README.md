@@ -13,6 +13,8 @@ Progress belongs to the browser and origin that saved it. A file URL and a local
 - Overview with local SVG scenery, a quick activity flow, next checkpoint, XP progress, streak, planned tasks, and recent activity.
 - A scrollable world containing all 50 original checkpoints, five regions, a current-position shortcut, and checkpoint details. Spacing is illustrative so nearby landmarks stay readable.
 - Planned and completed tasks, notes, category and status filters, search, pending-task editing, and deletion that preserves historical rewards.
+- Habit tracking inside Tasks with repeatable good-habit check-ins, daily bad-habit avoidance, daily/specific-day/times-per-week schedules, habit streaks, automatic clean-day rewards, and date-based corrections.
+- Optional task deadlines and daily reminder times for tasks/habits. The top-bar Reminders button lists due or overdue tasks and scheduled habits awaiting attention. Overdue tasks can still be completed for the normal reward.
 - **Undo** on completed tasks moves them back to To do and removes that completion's meters and XP, including accidentally logged activities. Completing the restored task earns its reward once again on the new completion date.
 - Distance, task, checkpoint, and 3/7/14/30/60/100-day consistency achievements, with recorded unlock dates for new awards.
 - Daily, weekly, and monthly distance charts; category distribution; and a 12-week activity calendar.
@@ -22,7 +24,13 @@ Progress belongs to the browser and origin that saved it. A file URL and a local
 
 ## Data rules
 
-`ascend-v1` remains the storage key so the original app's data can be read. Version 2 validates tasks and reward transactions before using or importing them. Distance, XP, levels, streaks, and statistics are derived from activity history. Legacy rewards are kept exactly as recorded, even when they do not match the newer difficulty range. New or edited pending tasks must follow the range.
+Reminder times use the device's local clock. Task deadlines are calendar dates: the task becomes overdue the following day. Due/overdue tasks notify at 09:00 unless a reminder time is set; a task with a reminder time also receives daily nudges before its deadline or without a deadline. Good-habit reminders follow the selected schedule and stop for the day after a check-in, or once the weekly target is met. Bad-habit reminders encourage avoidance and stop for that day after a recorded failure.
+
+Reminders are checked on opening, returning to the tab, and approximately every 30 seconds while the page runs. Closing the page stops notifications, and background-tab suspension can delay them. Browser notifications require explicit permission through Reminders; the in-app list remains available without permission or browser support. Delivery is grouped and limited to once per item per local day, with Web Locks preventing duplicates across supported tabs. Deadline/time settings are included in expedition backups. Notification permission, the notification toggle, and delivery receipts belong to the current browser and are not transferred with a backup.
+
+`ascend-v1` remains the storage key so the original app's data can be read. Version 2 validates tasks, habits, habit events, and reward transactions before using or importing them. Distance, XP, levels, streaks, and statistics are derived from activity history. Legacy rewards are kept exactly as recorded, even when they do not match the newer difficulty range. New or edited tasks and habits must follow the range.
+
+Good-habit check-ins each earn their configured reward. Daily and specific-day schedules measure streaks by required day; flexible weekly schedules measure streaks by completed week. Optional check-ins still earn altitude but do not replace a missed scheduled check-in. Bad habits are tracked daily: the user records only failures, and completed clean days are awarded when the app next opens. Historical corrections remove or restore the linked reward and recalculate streaks.
 
 Completion is guarded by both task status and transaction identity. Supported browsers use Web Locks to serialize updates across tabs; the storage event refreshes other tabs. On browsers without Web Locks, each write re-reads storage, but simultaneous writes across tabs cannot be guaranteed atomic. A failed storage write does not award progress in memory. Corrupt saved content is not automatically overwritten.
 
@@ -37,6 +45,7 @@ Checkpoint values retain the original brief. They mix approximate object heights
 - `data.js`: checkpoint, category, difficulty, achievement, and region definitions.
 - `js/core.js`: pure date, progression, validation, completion, and aggregation logic.
 - `js/storage.js`: persistence and recovery behavior.
+- `js/reminders.js`: reminder forms, in-app reminder center, and opt-in browser notification delivery.
 - `js/visuals.js`: reusable SVG icons, landscapes, and landmark illustrations.
 - `app.js`: page rendering, routing, forms, and interactions.
 - `styles.css`: shared visual system, themes, and responsive layouts.

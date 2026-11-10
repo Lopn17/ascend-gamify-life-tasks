@@ -5,7 +5,7 @@ const CATEGORIES=['Programming','Study','Habit','University / School','Language 
 const CATEGORY_ICONS={'Programming':'code','Study':'book','Habit':'calendar','University / School':'graduation','Language Learning':'language','Exercise':'heart','Personal Development':'spark','Other':'tasks','Mathematics':'target','University':'graduation','Reading':'book'};
 const DIFFICULTIES={ 'Very Easy':[1,2],Easy:[3,3],Normal:[4,5],Hard:[6,8],'Very Hard':[9,12],Epic:[13,15] };
 const ACHIEVEMENTS=[
-{id:'first-step',name:'First Step',icon:'↗',description:'Complete your first task.',test:s=>s.history.length>=1},
+{id:'first-step',name:'First Step',icon:'↗',description:'Record your first activity.',test:s=>s.history.length>=1},
 {id:'first-100',name:'First 100',icon:'◎',description:'Reach 100 meters.',test:s=>s.distance>=100},
 {id:'city-explorer',name:'City Explorer',icon:'▥',description:'Reach Taipei 101.',test:s=>s.distance>=508},
 {id:'sky-walker',name:'Sky Walker',icon:'☁',description:'Reach Burj Khalifa.',test:s=>s.distance>=828},
@@ -13,8 +13,8 @@ const ACHIEVEMENTS=[
 {id:'everest-dreamer',name:'Everest Dreamer',icon:'♢',description:'Reach the final checkpoint.',test:s=>s.distance>=8849},
 {id:'three-day',name:'Finding Rhythm',icon:'3',description:'Build a 3-day streak.',test:s=>s.longestStreak>=3},
 {id:'seven-day',name:'Week in Motion',icon:'7',description:'Build a 7-day streak.',test:s=>s.longestStreak>=7},
-{id:'ten-tasks',name:'Getting Going',icon:'10',description:'Complete 10 tasks.',test:s=>s.history.length>=10},
-{id:'fifty-tasks',name:'Trail Regular',icon:'50',description:'Complete 50 tasks.',test:s=>s.history.length>=50}
+{id:'ten-tasks',name:'Getting Going',icon:'10',description:'Record 10 activities.',test:s=>s.history.length>=10},
+{id:'fifty-tasks',name:'Trail Regular',icon:'50',description:'Record 50 activities.',test:s=>s.history.length>=50}
 ];
 // Preserve original IDs so existing collections migrate without losing badges.
 for (const days of [14,30,60,100]) ACHIEVEMENTS.push({id:`streak-${days}`,name:({14:'Two Weeks Strong',30:'A Month in Motion',60:'Steady Ascent',100:'Unstoppable'})[days],icon:'flame',description:`Build a ${days}-day streak.`,test:s=>s.longestStreak>=days});
